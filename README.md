@@ -10,7 +10,7 @@ When a customer wants to receive a quote from a cyber insurance provider partner
 2. Create an AWS IAM role that provides the partner with access to the list of Security Hub findings in customer's account
 3. Share the created IAM role ARN with the partner
 
-The partner assumes the provided IAM role and gets only findings related to the `AWS Foundational Security Best Practices v1.0.0 standard` (please see the [sample lambda function code](./src/partner/lambda_functions/create_quote/handler.py#L76-83)).
+The partner assumes the provided IAM role and gets only findings related to the `AWS Foundational Security Best Practices v1.0.0 standard` (please see the [sample lambda function code](./src/partner/lambda_functions/create_quote/handler.py#L78-L85)).
 
 ![AWS IAM Role Approach](./src/CyberInsuranceIAMRoleApproach.png)
 

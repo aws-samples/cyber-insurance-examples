@@ -44,7 +44,7 @@ REGION=us-east-1
 if aws s3api head-bucket --bucket $BUCKET_NAME 2>/dev/null; then
     echo "Bucket $BUCKET_NAME already exists"
 else
-    if [ "$REGION" == "us-east-1" ]; then
+    if [ "$REGION"=="us-east-1" ]; then
         aws s3api create-bucket --bucket $BUCKET_NAME --region $REGION && echo "Bucket $BUCKET_NAME created successfully"
     else
         aws s3api create-bucket --bucket $BUCKET_NAME --region $REGION --create-bucket-configuration LocationConstraint=$REGION && echo "Bucket $BUCKET_NAME created successfully"

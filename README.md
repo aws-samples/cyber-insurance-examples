@@ -29,13 +29,20 @@ The partner assumes the provided IAM role and gets only findings related to the 
 
 ### Deploying the solution
 
-1. Install lambda dependencies:
+1. Clone the repository:
+
+```bash
+git clone https://github.com/aws-samples/cyber-insurance-examples.git
+cd cyber-insurance-examples
+```
+
+2. Install the lambda dependencies:
 
 ```bash
 pip install -r src/partner/lambda_functions/create_quote/requirements.txt -t src/partner/lambda_functions/create_quote/
 ```
 
-2. Create a deployment S3 bucket. Make sure to use the unique bucket name:
+3. Create a deployment S3 bucket. Make sure to use the unique bucket name:
 
 ```bash
 BUCKET_NAME="deployment-bucket-cyberinsurance-demo-$(date +%s)"
@@ -52,7 +59,7 @@ else
 fi
 ```
 
-3. Package and deploy the CloudFormation template:
+4. Package and deploy the CloudFormation template:
 
 ```bash
 STACK_NAME=partner-stack
@@ -71,28 +78,28 @@ aws cloudformation deploy \
     --capabilities CAPABILITY_NAMED_IAM
 ```
 
-4. Upload [customer-template.yaml](./src/customer/customer-template.yaml) to the Website S3 bucket.
+5. Upload [customer-template.yaml](./src/customer/customer-template.yaml) to the Website S3 bucket.
 
 ```bash
 export WEBSITE_BUCKET_NAME=$(aws cloudformation describe-stacks --region $REGION --stack-name $STACK_NAME --query "Stacks[0].Outputs[?OutputKey=='WebsiteBucketName'].OutputValue" --output text)
 aws s3 cp src/customer/customer-template.yaml s3://$WEBSITE_BUCKET_NAME/
 ```
 
-5. Update the variables in the [config.js](./src/partner/config.js):
+6. Update the variables in the [config.js](./src/partner/config.js):
    1. `partnerName` - business name of the company
    2. `partnerAccountId` - AWS account ID running the cyber isnurance quote workload
    3. `templateURL` - the URL of the [customer-template.yaml](./src/customer/customer-template.yaml) file in the Website S3 bucket
    4. `snsTopicArn` - the ARN of the SNS topic created by the `partner-stack` CloudFormation stack. Available in the `SNSTopicARN` output of the `partner-stack` CloudFormation stack
    5. `apiURL` - the URL of the API Gateway endpoint created by the `partner-stack` CloudFormation stack. Available in the `ApiGatewayURL` output of the `partner-stack` CloudFormation stack
 
-6. Upload [index.html](./src/partner/index.html) and [config.js](./src/partner/config.js) to the Website S3 bucket.
+7. Upload [index.html](./src/partner/index.html) and [config.js](./src/partner/config.js) to the Website S3 bucket.
 
 ```bash
 aws s3 cp src/partner/index.html s3://$WEBSITE_BUCKET_NAME/
 aws s3 cp src/partner/config.js s3://$WEBSITE_BUCKET_NAME/
 ```
 
-7. Open the website URL in the browser. The URL can be found in the `WebsiteURL` output of the CloudFormation stack.
+8. Open the website URL in the browser. The URL can be found in the `WebsiteURL` output of the CloudFormation stack.
 
 ```bash
 export WEBSITE_URL=$(aws cloudformation describe-stacks --region $REGION --stack-name $STACK_NAME --query "Stacks[0].Outputs[?OutputKey=='WebsiteURL'].OutputValue" --output text)

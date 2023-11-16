@@ -25,7 +25,7 @@ The partner assumes the provided IAM role and gets only findings related to the 
 
 #### Cons
 
-- Partners have access to all Security Hub findings. Although the provided [sample lambda function code](./src/partner/lambda_functions/create_quote/handler.py#L76-83) filters only the findings related to the `AWS Foundational Security Best Practices v1.0.0 standard` on the request level, the lambda can be modified by the partner to get access to other findings as well
+- Partners have access to all Security Hub findings. Although the provided [sample lambda function code](./src/partner/lambda_functions/create_quote/handler.py#L78-L85) filters only the findings related to the `AWS Foundational Security Best Practices v1.0.0 standard` on the request level, the lambda can be modified by the partner to get access to other findings as well
 
 ### Deploying the solution
 

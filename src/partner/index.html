@@ -1,0 +1,130 @@
+<html>
+  <head>
+    <title>Partner Portal</title>
+  </head>
+  <body>
+    <h1>Partner Portal</h1>
+    <p>
+      This is the partner portal. Here you can share your
+      <b>Security Hub</b> findings with the partner to receive your cyber
+      insurance quote.
+    </p>
+    <p>
+      To share your Security Hub findings with the partner, enter your
+      <b>AWS Account ID</b> below and click the share button. This will open a
+      new tab in your browser to the <b>CloudFormation console</b>. Click the
+      <b>"Create Stack"</b> button to share your Security Hub findings with the
+      partner.
+    </p>
+    <p>
+      <b>Note:</b> You will need to log in to your AWS account to share your
+      Security Hub findings with the partner.
+    </p>
+    <p>
+      <b>Note:</b> Make sure you have Security Hub enabled in your AWS account
+      before sharing your Security Hub findings with the partner. You need the
+      <b>AWS Foundational Security Best Practices v1.0.0</b> standard enabled in
+      Security Hub.
+    </p>
+    <p>
+      Once you have provisioned the CloudFormation stack, you can click the "Get
+      Quote" button to receive your cyber insurance quote. You may need to wait
+      a few minutes for the partner to receive your Security Hub findings and
+      generate your cyber insurance quote.
+    </p>
+    <p>
+      Quote calculation in this example is based on the number and severity of
+      findings in your Security Hub:<br /><br />
+      1 Critical finding = $1,000<br />
+      1 High finding = $500<br />
+      1 Medium finding = $100<br />
+      1 Low finding = $10<br />
+      1 Informational finding = $1<br />
+    </p>
+    <form>
+      <label for="AccountId">Customer AWS Account ID:</label>
+      <input type="text" id="AccountId" name="AccountId" /><br /><br />
+      <input
+        type="button"
+        value="1. Share Security Hub findings with the partner"
+        onclick="submitForm()"
+      />
+      <input type="button" value="2. Get Quote" onclick="checkQuoteStatus()" />
+    </form>
+    <script src="config.js"></script>
+    <script>
+      function submitForm() {
+        var accountId = document.getElementById("AccountId").value;
+        if (accountId == "") {
+          alert("Please enter your AWS Account ID.");
+          return;
+        }
+        // generate random external ID
+        var externalId = Math.random().toString(36).substring(2, 15);
+        var url =
+          "https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?stackName=" +
+          partnerName +
+          "CyberInsuranceQuoteStack&templateURL=" +
+          templateURL +
+          "&param_AccountId=" +
+          partnerAccountId +
+          "&param_ExternalId=" +
+          externalId +
+          "&param_SnsTopicArn=" +
+          snsTopicArn;
+        window.open(url);
+
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", apiURL + "/account", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.send(
+          JSON.stringify({
+            accountId: accountId,
+            externalId: externalId,
+          })
+        );
+      }
+
+      function checkQuoteStatus() {
+        var accountId = document.getElementById("AccountId").value;
+        if (accountId == "") {
+          alert("Please enter your AWS Account ID.");
+          return;
+        }
+        var xhr = new XMLHttpRequest();
+        xhr.open("POST", apiURL + "/quote", true);
+        xhr.setRequestHeader("Content-Type", "application/json");
+        xhr.send(
+          JSON.stringify({
+            accountId: accountId,
+          })
+        );
+
+        xhr.onreadystatechange = function () {
+          if (xhr.readyState == 4 && xhr.status == 200) {
+            var response = JSON.parse(xhr.responseText);
+            alert(
+              "Your quote is: " +
+                response.quote +
+                ". You have " +
+                response.findings.critical +
+                " critical findings, " +
+                response.findings.high +
+                " high findings, " +
+                response.findings.medium +
+                " medium findings, " +
+                response.findings.low +
+                " low findings, and " +
+                response.findings.informational +
+                " informational findings in your Security Hub."
+            );
+          } else if (xhr.readyState == 4 && xhr.status == 404) {
+            alert(
+              "Your quote is not ready yet. Please make sure you shared your findings with the partner and try again later."
+            );
+          }
+        };
+      }
+    </script>
+  </body>
+</html>

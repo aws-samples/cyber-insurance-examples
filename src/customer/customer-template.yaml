@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: "CloudFormation template that takes an AWS account ID, external ID, and SNS topic ARN as an input and deploys an IAM role using the AWSSecurityHubReadOnlyAccess managed policy. The output contains the role ARN."
+Parameters:
+  AccountId:
+    Type: String
+    Description: "AWS account ID"
+  ExternalId:
+    Type: String
+    Description: "External ID"
+  SnsTopicArn:
+    Type: String
+    Description: "SNS topic ARN"
+
+Resources:
+  # Create an IAM role for the partner with the AWSSecurityHubReadOnlyAccess managed policy
+  CyberInsuranceQuoteRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub "CyberInsuranceQuoteRole-${AccountId}"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !Sub "arn:aws:iam::${AccountId}:root"
+            Action: sts:AssumeRole
+            Condition:
+              StringEquals:
+                sts:ExternalId: !Ref ExternalId
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSSecurityHubReadOnlyAccess
+
+  # Once the IAM role is created, send its ARN to the partner SNS topic
+  SendIAMRoleArnToPartnerSns:
+    Type: Custom::SendIAMRoleArnToPartnerSns
+    Version: "1.0"
+    Properties:
+      ServiceToken: !Ref SnsTopicArn
+      RoleArn: !GetAtt CyberInsuranceQuoteRole.Arn
+      AccountId: !Ref AWS::AccountId
+    DependsOn:
+      - CyberInsuranceQuoteRole
+
+Outputs:
+  CyberInsuranceQuoteRoleArn:
+    Description: "Security Hub Role ARN"
+    Value: !GetAtt CyberInsuranceQuoteRole.Arn
+    Export:
+      Name: CyberInsuranceQuoteRoleArn

@@ -1,0 +1,460 @@
+AWSTemplateFormatVersion: 2010-09-09
+Resources:
+  #
+  # Website deployment
+  #
+
+  # Create an S3 bucket to host the website
+  WebsiteS3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: !Sub "cyber-insurance-quote-website-${AWS::AccountId}"
+      WebsiteConfiguration:
+        IndexDocument: index.html
+  # Create a CloudFront distribution to serve the website
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        DefaultRootObject: index.html
+        Enabled: true
+        Origins:
+          - DomainName: !GetAtt WebsiteS3Bucket.DomainName
+            Id: S3Origin
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontOAI}"
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          CachedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+    DependsOn: CloudFrontOAI
+  # Create an OAI to allow CloudFront to access the S3 bucket
+  CloudFrontOAI:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub "OAI for ${AWS::AccountId}"
+  # Create a bucket policy to allow CloudFront to access the S3 bucket
+  WebsiteS3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref WebsiteS3Bucket
+      PolicyDocument:
+        Statement:
+          - Action:
+              - s3:GetObject
+            Effect: Allow
+            Principal:
+              CanonicalUser: !GetAtt CloudFrontOAI.S3CanonicalUserId
+            Resource: !Sub "arn:aws:s3:::${WebsiteS3Bucket}/*"
+    DependsOn: WebsiteS3Bucket
+
+  #
+  # Backend deployment
+  #
+
+  # Create an S3 bucket to store Security Hub findings
+  SecurityHubFindingsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      AccessControl: Private
+      BucketName: !Sub "cyber-insurance-quote-security-hub-findings-${AWS::AccountId}"
+  # Create a DynamoDB table to store the quote data and AWS account details
+  DynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: CyberInsuranceQuote
+      AttributeDefinitions:
+        - AttributeName: accountId
+          AttributeType: S
+        - AttributeName: type
+          AttributeType: S
+      KeySchema:
+        - AttributeName: accountId
+          KeyType: HASH
+        - AttributeName: type
+          KeyType: RANGE
+      BillingMode: PAY_PER_REQUEST
+  # Create a Lambda function to store AWS account details in DynamoDB
+  StoreAccountDetails:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: StoreAccountDetails
+      Description: Store AWS account details in DynamoDB
+      Runtime: python3.11
+      Code: lambda_functions/store_account_details/
+      Handler: handler.lambda_handler
+      Timeout: 30
+      Role: !GetAtt StoreAccountDetailsLambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          SNS_TOPIC_ARN: !Ref SnsTopic
+          USER_TEMPLATE_BUCKET_NAME: !Ref WebsiteS3Bucket
+          PARTNER_ROLE_NAME: !Ref CreateQuoteLambdaExecutionRole
+          PARTNER_ACCOUNT_ID: !Ref AWS::AccountId
+          CLOUDFRONT_URL: !GetAtt CloudFrontDistribution.DomainName
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+    DependsOn: StoreAccountDetailsLambdaExecutionRole
+  # Create a StoreAccountDetails Lambda execution role
+  StoreAccountDetailsLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: StoreAccountDetailsLambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                Resource: !GetAtt DynamoDBTable.Arn
+        - PolicyName: IAMUpdatePolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - iam:PutRolePolicy
+                Resource: !Sub "arn:aws:iam::${AWS::AccountId}:role/CreateQuoteLambdaExecutionRole"
+        - PolicyName: S3BucketPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:PutBucketPolicy
+                  - s3:GetBucketPolicy
+                Resource: !Sub "arn:aws:s3:::cyber-insurance-quote-website-${AWS::AccountId}"
+        - PolicyName: SNSPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - sns:GetTopicAttributes
+                  - sns:SetTopicAttributes
+                Resource: !Ref SnsTopic
+  # Create a Lambda permission to allow API Gateway to invoke the Lambda function
+  StoreAccountDetailsInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref StoreAccountDetails
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*"
+  # Create a Lambda function to get Security Hub findings and create a quote
+  CreateQuote:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: CreateQuote
+      Description: Get Security Hub findings and create a quote
+      Runtime: python3.11
+      Code: lambda_functions/create_quote/
+      Handler: handler.lambda_handler
+      Timeout: 300
+      Role: !GetAtt CreateQuoteLambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          SECURITYHUB_FINDINGS_BUCKET: !Ref SecurityHubFindingsBucket
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+  # Create a CreateQuote Lambda execution role
+  CreateQuoteLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: CreateQuoteLambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:PutItem
+                  - dynamodb:GetItem
+                Resource: !GetAtt DynamoDBTable.Arn
+        - PolicyName: S3Policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                  - s3:PutObject
+                Resource: !Sub "arn:aws:s3:::${SecurityHubFindingsBucket}/*"
+  # Create a Lambda permission to allow SNS to invoke the Lambda function
+  CreateQuoteInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref CreateQuote
+      Principal: sns.amazonaws.com
+      SourceArn: !Ref SnsTopic
+  # Create a Lambda to check the quote status
+  CheckQuoteStatus:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: CheckQuoteStatus
+      Description: Check quote status
+      Runtime: python3.11
+      Code: lambda_functions/check_quote/
+      Handler: handler.lambda_handler
+      Timeout: 30
+      Role: !GetAtt CreateQuoteLambdaExecutionRole.Arn
+      Environment:
+        Variables:
+          DYNAMODB_TABLE_NAME: !Ref DynamoDBTable
+          CLOUDFRONT_URL: !GetAtt CloudFrontDistribution.DomainName
+          SECURITYHUB_FINDINGS_BUCKET: !Ref SecurityHubFindingsBucket
+  # Create a CheckQuoteStatus Lambda execution role
+  CheckQuoteStatusLambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: CheckQuoteStatusLambdaExecutionRole
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBPolicy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                Resource: !GetAtt DynamoDBTable.Arn
+        - PolicyName: S3Policy
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:GetObject
+                Resource: !Sub "arn:aws:s3:::${SecurityHubFindingsBucket}/*"
+  # Create a Lambda permission to allow API Gateway to invoke the Lambda function
+  CheckQuoteStatusInvoke:
+    Type: AWS::Lambda::Permission
+    Properties:
+      Action: lambda:InvokeFunction
+      FunctionName: !Ref CheckQuoteStatus
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*/*"
+  # Create an SNS topic to send the role ARN to
+  SnsTopic:
+    Type: AWS::SNS::Topic
+    Properties:
+      TopicName: CyberInsuranceQuoteTopic
+  # Create an SNS subscription to invoke the CreateQuote Lambda function
+  SnsSubscription:
+    Type: AWS::SNS::Subscription
+    Properties:
+      Endpoint: !GetAtt CreateQuote.Arn
+      Protocol: lambda
+      TopicArn: !Ref SnsTopic
+
+  #
+  # API Gateway deployment
+  #
+
+  # Create an API Gateway to serve the quote API
+  ApiGateway:
+    Type: AWS::ApiGateway::RestApi
+    Properties:
+      Name: CyberInsuranceQuoteApi
+      Description: Cyber Insurance Quote API
+  # Create an API Gateway deployment
+  ApiGatewayDeployment:
+    Type: AWS::ApiGateway::Deployment
+    Properties:
+      RestApiId: !Ref ApiGateway
+    DependsOn:
+      - ApiGatewayOPTIONS
+      - ApiGatewayAccountPOST
+      - ApiGatewayAccountOPTIONS
+      - ApiGatewayQuotePOST
+      - ApiGatewayQuoteOPTIONS
+  # Create an API Gateway stage
+  ApiGatewayStage:
+    Type: AWS::ApiGateway::Stage
+    Properties:
+      RestApiId: !Ref ApiGateway
+      DeploymentId: !Ref ApiGatewayDeployment
+      StageName: Prod
+  ApiGatewayOPTIONS:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ResourceId: !GetAtt ApiGateway.RootResourceId
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 204
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 204
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+  # Create an API Gateway account resource
+  ApiGatewayAccountResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: account
+  ApiGatewayAccountOPTIONS:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ApiGatewayAccountResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 204
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 204
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+  ApiGatewayAccountPOST:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ApiGatewayAccountResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      ApiKeyRequired: false
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${StoreAccountDetails.Arn}/invocations"
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+    DependsOn: StoreAccountDetailsInvoke
+  # Create an API Gateway quote resource
+  ApiGatewayQuoteResource:
+    Type: AWS::ApiGateway::Resource
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ParentId: !GetAtt ApiGateway.RootResourceId
+      PathPart: quote
+  ApiGatewayQuoteOPTIONS:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ApiGatewayQuoteResource
+      HttpMethod: OPTIONS
+      AuthorizationType: NONE
+      Integration:
+        Type: MOCK
+        IntegrationResponses:
+          - StatusCode: 204
+            ResponseParameters:
+              method.response.header.Access-Control-Allow-Headers: "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,X-Amz-User-Agent'"
+              method.response.header.Access-Control-Allow-Methods: "'POST,OPTIONS'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
+        RequestTemplates:
+          application/json: '{"statusCode": 200}'
+      MethodResponses:
+        - StatusCode: 204
+          ResponseParameters:
+            method.response.header.Access-Control-Allow-Headers: true
+            method.response.header.Access-Control-Allow-Methods: true
+            method.response.header.Access-Control-Allow-Origin: true
+  ApiGatewayQuotePOST:
+    Type: AWS::ApiGateway::Method
+    Properties:
+      RestApiId: !Ref ApiGateway
+      ResourceId: !Ref ApiGatewayQuoteResource
+      HttpMethod: POST
+      AuthorizationType: NONE
+      ApiKeyRequired: false
+      Integration:
+        Type: AWS_PROXY
+        IntegrationHttpMethod: POST
+        Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CheckQuoteStatus.Arn}/invocations"
+        PassthroughBehavior: WHEN_NO_TEMPLATES
+    DependsOn: CheckQuoteStatusInvoke
+
+Outputs:
+  WebsiteURL:
+    Description: "Website URL"
+    Value: !GetAtt CloudFrontDistribution.DomainName
+    Export:
+      Name: WebsiteURL
+  SNSTopicARN:
+    Description: "SNS Topic ARN"
+    Value: !Ref SnsTopic
+    Export:
+      Name: SNSTopicARN
+  WebsiteBucketName:
+    Description: "Website Bucket Name"
+    Value: !Ref WebsiteS3Bucket
+    Export:
+      Name: WebsiteBucketName
+  SecurityHubFindingsBucketName:
+    Description: "Security Hub Findings Bucket Name"
+    Value: !Ref SecurityHubFindingsBucket
+    Export:
+      Name: SecurityHubFindingsBucketName
+  ApiGatewayURL:
+    Description: "API Gateway URL"
+    Value: !Sub "https://${ApiGateway}.execute-api.${AWS::Region}.amazonaws.com/${ApiGatewayStage}"
+    Export:
+      Name: ApiGatewayURL

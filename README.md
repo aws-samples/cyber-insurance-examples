@@ -26,7 +26,16 @@ This solution automates the process of sharing the Security Hub findings with th
 
 This approach allows the insurance provider to get the up-to-date data at any time. The customer can revoke the access at any time by deleting the IAM role.
 
+The solution consists of two parts:
+
+1. **Partner**: The partner creates a CloudFormation stack that deploys a website that allows the customer to request a cyber insurance quote and initiate the deployment of the Customer stack (see below). The partner stack also creates an event-driven solution for generating the quote. An Amazon API Gateway endpoint and a few Lambda functions are used to store the customer account details and check if the quote is ready. The stack creates an SNS topic that sends a notification to the partner when the customer stack is deployed. A Lambda function can then assume the IAM role in the customer account and retrieve the Security Hub findings. The findings are stored in an S3 bucket and used as an input to the risk model to provide a quote. The final quote is stored in a DynamoDB table and returned to the customer through the website.
+2. **Customer**: The customer deploys a CloudFormation stack that creates a cross-account IAM role providing read-only access to the Security Hub findings. The stack also creates a custom resource that reports back to the partner that the IAM role was successfully created and is ready to use.
+
+The following diagram illustrates the approach:
+
 ![AWS IAM Role Approach](./src/CyberInsuranceIAMRoleApproach.png)
+
+The partner website allows the customer to request a quote by providing their AWS account ID and region where Security Hub findings are aggregated. It navigates the customer to the AWS CloudFormation console in the customer AWS account to deploy the customer stack. The customer stack creates the IAM role and sends a notification to the partner when the role is ready. The partner solution then retrieves the Security Hub findings and generates the quote which is displayed to the customer on the website. Below is a screenshot of the sample website:
 
 ![Sample Partner Portal](./src/Partner-Portal.png)
 

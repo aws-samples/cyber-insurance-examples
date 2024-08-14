@@ -1,33 +1,58 @@
 # Cyber Insurance Examples
 
-## AWS IAM Role Approach
+This repository contains examples of how cyber insurance providers can use AWS services to provide quotes to their customers.
 
-### Solution overview
+The [AWS Competency Partner Program](https://aws.amazon.com/partners/cyber-insurance-partner-solutions/) is designed to identify, validate, and promote AWS Partners with demonstrated AWS technical expertise and proven customer success. Working with an [AWS Cyber Insurance Partner](https://partners.amazonaws.com/search/partners?facets=Use%20Case%20%3A%20Cyber%20Insurance) is fast and easy. AWS Cyber Insurance Partners have streamlined the process for AWS customers get a quote for the cyber insurance coverage they need within 2 business days. With a simplified method of sharing your AWS security posture by way of AWS Security Hub, AWS Cyber Insurance Partners can offer valuable insights as to how the customer can level up their security posture even higher, thereby further reducing the customer’s business risk while unlocking higher coverage limits or reducing the cost on premiums for the customer.
 
-When a customer wants to receive a quote from a cyber insurance provider partner, a customer is expected:
+## Table of Contents
 
-1. Enable AWS Security Hub `AWS Foundational Security Best Practices v1.0.0` standard in their AWS account/AWS organization
-2. Create an AWS IAM role that provides the partner with access to the list of Security Hub findings in customer's account
-3. Share the created IAM role ARN with the partner
+- [Cyber Insurance Examples](#cyber-insurance-examples)
+  - [Table of Contents](#table-of-contents)
+  - [Solution overview](#solution-overview)
+  - [Pros and Cons](#pros-and-cons)
+    - [Pros](#pros)
+    - [Cons](#cons)
+  - [Deploying the solution](#deploying-the-solution)
+    - [Prerequisites](#prerequisites)
+    - [Steps](#steps)
+    - [Cleaning up the solution](#cleaning-up-the-solution)
+  - [Content Security Legal Disclaimer](#content-security-legal-disclaimer)
 
-The partner assumes the provided IAM role and gets only findings related to the `AWS Foundational Security Best Practices v1.0.0 standard` (please see the [sample lambda function code](./src/partner/lambda_functions/create_quote/handler.py#L78-L85)).
+## Solution overview
+
+A customer applying for a cyber insurance quote is expected to enable AWS Security Hub [AWS Foundational Security Best Practices (FSBP) v1.0.0 standard](https://docs.aws.amazon.com/securityhub/latest/userguide/fsbp-standard.html) in AWS accounts across their AWS organization. The findings should be aggregated in a central account and shared with the insurance provider.
+
+This solution automates the process of sharing the Security Hub findings with the insurance provider by using a cross-account IAM role. The customer creates a read-only IAM role in their account that provides the insurance provider with access to the list of Security Hub findings. The insurance provider assumes the IAM role and gets the list of findings related to the `AWS Foundational Security Best Practices v1.0.0 standard`. The findings are used as an input to the risk model to provide a quote.
+
+This approach allows the insurance provider to get the up-to-date data at any time. The customer can revoke the access at any time by deleting the IAM role.
 
 ![AWS IAM Role Approach](./src/CyberInsuranceIAMRoleApproach.png)
 
-#### Pros
+![Sample Partner Portal](./src/Partner-Portal.png)
 
-- Easy to deploy by a customer - a CloudFormation stack that deploys just one IAM role
-- Easy to implement by a partner - need to 1/ assume the IAM role and 2/ run a single API call to get the list of Security Hub findings
-- Findings are pulled from customer's account. The partner does not have to expose any API endpoints to the Internet that increase the attack surface and need to be properly secured (i.e., authentication, authorization, input data validation, etc.)
-- No cost for a customer other than costs associated with usage of AWS Security Hub
-- Continuous integration, access can be revoked at any time. In the implemented PoC, the findings are pulled only once when the customer stack is deployed and the CreateQuote lambda is invoked by the SNS Topic (via a custom resource in the customer stack)
-- When a customer removes the CloudFormation stack, the partner receives an SNS notification and can react accordingly
+## Pros and Cons
 
-#### Cons
+### Pros
 
-- Partners have access to all Security Hub findings. Although the provided [sample lambda function code](./src/partner/lambda_functions/create_quote/handler.py#L78-L85) filters only the findings related to the `AWS Foundational Security Best Practices v1.0.0 standard` on the request level, the lambda can be modified by the partner to get access to other findings as well
+- Transparent approach that allows the customer to review the resources and permissions granted to the insurance provider through the AWS CloudFormation stack deployment.
+- Easy for the partner to implement - they just need to assume the IAM role and make a single API call to retrieve the list of Security Hub findings.
+- Findings are pulled directly from the customer's account, so the partner does not need to expose any API endpoints to the internet that would require additional security measures.
+- No additional cost for the customer beyond the usage of AWS Security Hub.
+- The access can be continuously monitored and revoked at any time by the customer. In the PoC, the findings are only pulled once when the customer stack is deployed and the CreateQuote lambda is invoked.
+- When the customer revokes the partner's access by deleting the CloudFormation stack, the partner receives an SNS notification and can respond accordingly.
 
-### Deploying the solution
+### Cons
+
+- The partner has access to all Security Hub findings, even though the provided sample code [only filters the findings related to the AWS Foundational Security Best Practices v1.0.0 standard](./src/partner/lambda_functions/create_quote/handler.py#L76-L102). The partner could potentially modify the lambda function to access other types of findings.
+
+## Deploying the solution
+
+### Prerequisites
+
+- AWS CLI configured with appropriate permissions
+- Python 3+ installed
+
+### Steps
 
 1. Clone the repository:
 

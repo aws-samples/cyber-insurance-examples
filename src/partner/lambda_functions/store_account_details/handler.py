@@ -23,10 +23,24 @@ def lambda_handler(event, context):
     try:
         data = json.loads(event["body"])
         user_account_id = data["accountId"]
+        user_region = data["region"]
         external_id = data["externalId"]
-        if not user_account_id or not external_id:
-            raise Exception("Error: Missing required parameters: accountId or externalId")
-        table.put_item(Item={"accountId": user_account_id, "type": "externalId", "externalId": external_id})
+        if not user_account_id or not user_region or not external_id:
+            raise Exception("Error: Missing required parameters: accountId or region or externalId")
+        table.put_item(
+            Item={
+                "accountId": user_account_id,
+                "type": "externalId",
+                "externalId": external_id,
+            }
+        )
+        table.put_item(
+            Item={
+                "accountId": user_account_id,
+                "type": "region",
+                "region": user_region,
+            }
+        )
 
         # Update the S3 bucket policy to allow principals from the user AWS account to access customer-template.yaml
         update_s3_bucket_policy(user_account_id)
@@ -68,7 +82,13 @@ def update_lambda_role(user_account_id):
             PolicyDocument=json.dumps(
                 {
                     "Version": "2012-10-17",
-                    "Statement": [{"Effect": "Allow", "Action": "sts:AssumeRole", "Resource": customer_role_arn}],
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": "sts:AssumeRole",
+                            "Resource": customer_role_arn,
+                        }
+                    ],
                 }
             ),
         )
@@ -116,7 +136,9 @@ def update_sns_topic_policy(user_account_id):
             topic_policy["Statement"].append(new_statement)
             print(f"New topic policy: {json.dumps(topic_policy)}")
             sns.set_topic_attributes(
-                TopicArn=sns_topic_arn, AttributeName="Policy", AttributeValue=json.dumps(topic_policy)
+                TopicArn=sns_topic_arn,
+                AttributeName="Policy",
+                AttributeValue=json.dumps(topic_policy),
             )
     except Exception as e:
         print(f"Error: {str(e)}")

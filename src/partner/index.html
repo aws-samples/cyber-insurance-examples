@@ -1,60 +1,235 @@
-<html>
+<!DOCTYPE html>
+<html lang="en">
   <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Partner Portal</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background-color: #f4f4f9;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+      }
+      .container {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        max-width: 600px;
+        width: 100%;
+      }
+      h1 {
+        color: #333;
+        text-align: center;
+      }
+      p {
+        color: #666;
+        line-height: 1.6;
+      }
+      b {
+        color: #333;
+      }
+      form {
+        margin-top: 20px;
+      }
+      label {
+        display: block;
+        margin-bottom: 8px;
+        color: #333;
+      }
+      input[type="text"],
+      select {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 20px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+      input[type="button"] {
+        width: 100%;
+        padding: 10px;
+        background-color: #007bff;
+        border: none;
+        border-radius: 4px;
+        color: #fff;
+        font-size: 16px;
+        cursor: pointer;
+        margin-bottom: 10px;
+      }
+      input[type="button"]:hover {
+        background-color: #0056b3;
+      }
+      .note {
+        background-color: #e7f3fe;
+        border-left: 6px solid #2196f3;
+        padding: 10px;
+        margin-bottom: 20px;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+      }
+      th,
+      td {
+        padding: 12px 15px;
+        border: 1px solid #ddd;
+        text-align: left;
+      }
+      th {
+        background-color: #f4f4f9;
+      }
+      /* New styles for quote section */
+      .quote-section {
+        margin-top: 20px;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+      }
+      .quote-section h2 {
+        margin-top: 0;
+      }
+    </style>
   </head>
   <body>
-    <h1>Partner Portal</h1>
-    <p>
-      This is the partner portal. Here you can share your
-      <b>Security Hub</b> findings with the partner to receive your cyber
-      insurance quote.
-    </p>
-    <p>
-      To share your Security Hub findings with the partner, enter your
-      <b>AWS Account ID</b> below and click the share button. This will open a
-      new tab in your browser to the <b>CloudFormation console</b>. Click the
-      <b>"Create Stack"</b> button to share your Security Hub findings with the
-      partner.
-    </p>
-    <p>
-      <b>Note:</b> You will need to log in to your AWS account to share your
-      Security Hub findings with the partner.
-    </p>
-    <p>
-      <b>Note:</b> Make sure you have Security Hub enabled in your AWS account
-      before sharing your Security Hub findings with the partner. You need the
-      <b>AWS Foundational Security Best Practices v1.0.0</b> standard enabled in
-      Security Hub.
-    </p>
-    <p>
-      Once you have provisioned the CloudFormation stack, you can click the "Get
-      Quote" button to receive your cyber insurance quote. You may need to wait
-      a few minutes for the partner to receive your Security Hub findings and
-      generate your cyber insurance quote.
-    </p>
-    <p>
-      Quote calculation in this example is based on the number and severity of
-      findings in your Security Hub:<br /><br />
-      1 Critical finding = $1,000<br />
-      1 High finding = $500<br />
-      1 Medium finding = $100<br />
-      1 Low finding = $10<br />
-      1 Informational finding = $1<br />
-    </p>
-    <form>
-      <label for="AccountId">Customer AWS Account ID:</label>
-      <input type="text" id="AccountId" name="AccountId" /><br /><br />
-      <input
-        type="button"
-        value="1. Share Security Hub findings with the partner"
-        onclick="submitForm()"
-      />
-      <input type="button" value="2. Get Quote" onclick="checkQuoteStatus()" />
-    </form>
+    <div class="container">
+      <h1>Partner Portal</h1>
+      <p>
+        Welcome to the Cyber Insurance Partner Portal. Here, you can share your
+        <b>AWS Security Hub</b> findings to receive a cyber insurance quote.
+      </p>
+      <p>Follow these steps to share your findings:</p>
+      <ol>
+        <li>
+          Enter your <b>AWS Account ID</b> and select the
+          <b>AWS Region</b> where your Security Hub findings are aggregated.
+        </li>
+        <li>
+          Click the
+          <b>"Share Security Hub findings with the partner"</b> button. This
+          will open the <b>AWS CloudFormation console</b> in a new tab.
+        </li>
+        <li>
+          In the CloudFormation console, click the <b>"Create Stack"</b> button
+          to share your Security Hub findings.
+        </li>
+      </ol>
+      <div class="note">
+        <b>Note:</b> You must be logged in to your AWS account to share your
+        Security Hub findings.
+      </div>
+      <div class="note">
+        <b>Note:</b> Ensure that AWS Security Hub and the
+        <b>AWS Foundational Security Best Practices v1.0.0</b> standard are
+        enabled in your AWS environment in advance since it may take up to 48
+        hours to generate findings.
+      </div>
+      <p>
+        After provisioning the CloudFormation stack, click the "Get Quote"
+        button to receive your cyber insurance quote. Please allow a few minutes
+        for the partner to process your findings.
+      </p>
+      <p>
+        In this example, the quote calculation is based on the number and
+        severity of findings in your Security Hub. The following table provides
+        an example of the cost of one finding based on its severity:
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Finding Severity</th>
+            <th>Cost per Finding</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Critical</td>
+            <td>$1,000</td>
+          </tr>
+          <tr>
+            <td>High</td>
+            <td>$500</td>
+          </tr>
+          <tr>
+            <td>Medium</td>
+            <td>$100</td>
+          </tr>
+          <tr>
+            <td>Low</td>
+            <td>$10</td>
+          </tr>
+          <tr>
+            <td>Informational</td>
+            <td>$1</td>
+          </tr>
+        </tbody>
+      </table>
+      <form>
+        <label for="AccountId">Customer AWS Account ID:</label>
+        <input type="text" id="AccountId" name="AccountId" />
+        <label for="Region"
+          >Select an AWS Region where your AWS Security Hub findings are
+          aggregated:</label
+        >
+        <select id="Region" name="Region">
+          <option value="us-east-1">us-east-1</option>
+          <option value="us-east-2">us-east-2</option>
+          <option value="us-west-1">us-west-1</option>
+          <option value="us-west-2">us-west-2</option>
+          <option value="af-south-1">af-south-1</option>
+          <option value="ap-south-1">ap-south-1</option>
+          <option value="ap-south-2">ap-south-2</option>
+          <option value="ap-east-1">ap-east-1</option>
+          <option value="ap-southeast-1">ap-southeast-1</option>
+          <option value="ap-southeast-2">ap-southeast-2</option>
+          <option value="ap-southeast-3">ap-southeast-3</option>
+          <option value="ap-southeast-4">ap-southeast-4</option>
+          <option value="ap-northeast-1">ap-northeast-1</option>
+          <option value="ap-northeast-2">ap-northeast-2</option>
+          <option value="ap-northeast-3">ap-northeast-3</option>
+          <option value="ca-central-1">ca-central-1</option>
+          <option value="ca-west-1">ca-west-1</option>
+          <option value="eu-central-1">eu-central-1</option>
+          <option value="eu-west-1">eu-west-1</option>
+          <option value="eu-west-2">eu-west-2</option>
+          <option value="eu-west-3">eu-west-3</option>
+          <option value="eu-south-1">eu-south-1</option>
+          <option value="eu-south-2">eu-south-2</option>
+          <option value="eu-north-1">eu-north-1</option>
+          <option value="eu-central-2">eu-central-2</option>
+          <option value="il-central-1">il-central-1</option>
+          <option value="me-south-1">me-south-1</option>
+          <option value="me-central-1">me-central-1</option>
+          <option value="sa-east-1">sa-east-1</option>
+          <option value="us-gov-east-1">us-gov-east-1</option>
+          <option value="us-gov-west-1">us-gov-west-1</option>
+        </select>
+        <input
+          type="button"
+          value="1. Share Security Hub findings with the partner"
+          onclick="submitForm()"
+        />
+        <input
+          type="button"
+          value="2. Get Quote"
+          onclick="checkQuoteStatus()"
+        />
+      </form>
+      <div class="quote-section" id="quoteSection" style="display: none">
+        <h2>Quote Details</h2>
+        <p id="quoteAmount"></p>
+        <div id="quoteFindingsTable"></div>
+      </div>
+    </div>
     <script src="config.js"></script>
     <script>
       function submitForm() {
         var accountId = document.getElementById("AccountId").value;
+        var region = document.getElementById("Region").value;
         if (accountId == "") {
           alert("Please enter your AWS Account ID.");
           return;
@@ -62,7 +237,9 @@
         // generate random external ID
         var externalId = Math.random().toString(36).substring(2, 15);
         var url =
-          "https://console.aws.amazon.com/cloudformation/home?region=us-east-1#/stacks/create/review?stackName=" +
+          "https://console.aws.amazon.com/cloudformation/home?region=" +
+          region +
+          "#/stacks/create/review?stackName=" +
           partnerName +
           "CyberInsuranceQuoteStack&templateURL=" +
           templateURL +
@@ -80,6 +257,7 @@
         xhr.send(
           JSON.stringify({
             accountId: accountId,
+            region: region,
             externalId: externalId,
           })
         );
@@ -91,6 +269,7 @@
           alert("Please enter your AWS Account ID.");
           return;
         }
+
         var xhr = new XMLHttpRequest();
         xhr.open("POST", apiURL + "/quote", true);
         xhr.setRequestHeader("Content-Type", "application/json");
@@ -101,27 +280,68 @@
         );
 
         xhr.onreadystatechange = function () {
-          if (xhr.readyState == 4 && xhr.status == 200) {
-            var response = JSON.parse(xhr.responseText);
-            alert(
-              "Your quote is: " +
-                response.quote +
-                ". You have " +
-                response.findings.critical +
-                " critical findings, " +
-                response.findings.high +
-                " high findings, " +
-                response.findings.medium +
-                " medium findings, " +
-                response.findings.low +
-                " low findings, and " +
-                response.findings.informational +
-                " informational findings in your Security Hub."
-            );
-          } else if (xhr.readyState == 4 && xhr.status == 404) {
-            alert(
-              "Your quote is not ready yet. Please make sure you shared your findings with the partner and try again later."
-            );
+          if (xhr.readyState == 4) {
+            var quoteSection = document.getElementById("quoteSection");
+            var quoteAmount = document.getElementById("quoteAmount");
+            var quoteFindingsTable =
+              document.getElementById("quoteFindingsTable");
+
+            if (xhr.status == 200) {
+              var response = JSON.parse(xhr.responseText);
+              quoteAmount.textContent = "Your quote is: " + response.quote;
+
+              var findingsHtml = `
+              <table>
+                <thead>
+                  <tr>
+                    <th>Finding Severity</th>
+                    <th>Number of Findings</th>
+                    <th>Cost per Finding</th>
+                    <th>Total Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Critical</td>
+                    <td>${response.findings.critical}</td>
+                    <td>$1,000</td>
+                    <td>$${response.findings.critical * 1000}</td>
+                  </tr>
+                  <tr>
+                    <td>High</td>
+                    <td>${response.findings.high}</td>
+                    <td>$500</td>
+                    <td>$${response.findings.high * 500}</td>
+                  </tr>
+                  <tr>
+                    <td>Medium</td>
+                    <td>${response.findings.medium}</td>
+                    <td>$100</td>
+                    <td>$${response.findings.medium * 100}</td>
+                  </tr>
+                  <tr>
+                    <td>Low</td>
+                    <td>${response.findings.low}</td>
+                    <td>$10</td>
+                    <td>$${response.findings.low * 10}</td>
+                  </tr>
+                  <tr>
+                    <td>Informational</td>
+                    <td>${response.findings.informational}</td>
+                    <td>$1</td>
+                    <td>$${response.findings.informational}</td>
+                  </tr>
+                </tbody>
+              </table>
+            `;
+
+              quoteFindingsTable.innerHTML = findingsHtml;
+              quoteSection.style.display = "block";
+            } else {
+              quoteAmount.textContent = "Error: " + xhr.responseText;
+              quoteFindingsTable.innerHTML = "";
+              quoteSection.style.display = "block";
+            }
           }
         };
       }

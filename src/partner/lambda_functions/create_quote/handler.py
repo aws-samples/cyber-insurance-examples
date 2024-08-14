@@ -24,15 +24,16 @@ def get_quote(sns_message, context):
         customer_role_arn = sns_message["ResourceProperties"]["RoleArn"]
         user_account_id = sns_message["ResourceProperties"]["AccountId"]
         external_id = get_external_id(user_account_id)
-        if not customer_role_arn or not user_account_id or not external_id:
-            raise Exception("Error: Missing required parameters: RoleArn, AccountId, ExternalId")
+        region = get_region(user_account_id)
+        if not customer_role_arn or not user_account_id or not external_id or not region:
+            raise Exception("Error: Missing required parameters: RoleArn, AccountId, ExternalId, or Region")
 
         # Store the role ARN in DynamoDB
         store_role_arn(user_account_id, customer_role_arn)
         # Assume the role and get the temporary credentials
         credentials = assume_customer_role(customer_role_arn, external_id)
         # Get the list of findings
-        findings = get_securityhub_findings(credentials)
+        findings = get_securityhub_findings(credentials, region)
         # Analyze the findings and calculate the quote
         store_findings(findings, user_account_id)
         quote = process_findings(findings)
@@ -66,10 +67,17 @@ def get_external_id(user_account_id):
     return external_id
 
 
-def get_securityhub_findings(credentials):
+def get_region(user_account_id):
+    response = table.get_item(Key={"accountId": user_account_id, "type": "region"})
+    region = response["Item"]["region"]
+    return region
+
+
+def get_securityhub_findings(credentials, region):
     logger.info("Getting Security Hub findings...")
     securityhub = boto3.client(
         "securityhub",
+        region_name=region,
         aws_access_key_id=credentials["AccessKeyId"],
         aws_secret_access_key=credentials["SecretAccessKey"],
         aws_session_token=credentials["SessionToken"],
@@ -103,7 +111,9 @@ def store_role_arn(user_account_id, role_arn):
 def assume_customer_role(customer_role_arn, external_id):
     logger.info(f"Assuming role {customer_role_arn} with external ID {external_id}")
     assumed_role_object = sts_client.assume_role(
-        RoleArn=customer_role_arn, ExternalId=external_id, RoleSessionName="AssumeRoleCyberinsuranceProvider"
+        RoleArn=customer_role_arn,
+        ExternalId=external_id,
+        RoleSessionName="AssumeRoleCyberinsuranceProvider",
     )
     try:
         credentials = assumed_role_object["Credentials"]

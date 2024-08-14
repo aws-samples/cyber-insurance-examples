@@ -39,7 +39,7 @@ cd cyber-insurance-examples
 2. Install the lambda dependencies:
 
 ```bash
-pip install -r src/partner/lambda_functions/create_quote/requirements.txt -t src/partner/lambda_functions/create_quote/
+pip3 install -r src/partner/lambda_functions/create_quote/requirements.txt -t src/partner/lambda_functions/create_quote/
 ```
 
 3. Create a deployment S3 bucket. Make sure to use the unique bucket name:

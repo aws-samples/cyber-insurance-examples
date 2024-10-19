@@ -10,10 +10,10 @@ The [AWS Competency Partner Program](https://aws.amazon.com/partners/cyber-insur
   - [Table of Contents](#table-of-contents)
   - [Solution overview](#solution-overview)
     - [Architecture](#architecture)
-    - [Partner Preparation](#partner-preparation)
-    - [Customer Preparation](#customer-preparation)
-    - [Cyber Insurance Quote Request](#cyber-insurance-quote-request)
-    - [Sample Partner Portal](#sample-partner-portal)
+    - [Partner preparation](#partner-preparation)
+    - [Customer preparation](#customer-preparation)
+    - [Cyber insurance quote request](#cyber-insurance-quote-request)
+    - [Sample partner portal](#sample-partner-portal)
     - [Considerations](#considerations)
   - [Deploying the solution](#deploying-the-solution)
     - [Prerequisites](#prerequisites)
@@ -41,7 +41,7 @@ The solution consists of two parts:
 
 ![AWS IAM Role Approach](./src/CyberInsuranceIAMRoleApproach.png)
 
-### Partner Preparation
+### Partner preparation
 
 ```mermaid
 sequenceDiagram
@@ -51,7 +51,7 @@ Partner ->> Template S3 Bucket: Upload customer-template.yaml
 Partner ->> Website S3 Bucket: Deploy frontend website
 ```
 
-### Customer Preparation
+### Customer preparation
 
 ```mermaid
 sequenceDiagram
@@ -62,7 +62,7 @@ Customer ->> Security Hub: Enable AWS Foundational Security Best Practices (FSBP
 Note right of Security Hub: Wait up to 48 hours for FSBP to generate findings
 ```
 
-### Cyber Insurance Quote Request
+### Cyber insurance quote request
 
 ```mermaid
 sequenceDiagram
@@ -121,7 +121,7 @@ CheckQuote Lambda Function -->> Partner Portal: Return quote information(quote, 
 Partner Portal -->> Customer: Display quote information<br/>(quote, aggregatedFindings)
 ```
 
-### Sample Partner Portal
+### Sample partner portal
 
 The partner website allows the customer to request a quote by providing their AWS account ID and region where Security Hub findings are aggregated. It navigates the customer to the AWS CloudFormation console in the customer AWS account to deploy the customer stack. The customer stack creates the IAM role and sends a notification to the partner when the role is ready. The partner solution then retrieves the Security Hub findings and generates the quote which is displayed to the customer on the website. Below is a screenshot of the sample website:
 

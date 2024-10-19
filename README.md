@@ -100,7 +100,7 @@ Partner Portal -->> Customer: Navigate to the AWS CloudFormation <br/>console(Pa
 
 Customer ->> CloudFormation Console: Deploy customer-template.yaml(partnerAccountId, externalId, snsTopicArn)
 CloudFormation Console ->> Template S3 Bucket: Get partner template
-CloudFormation Console ->> Customer Stack: Create IAM Role
+CloudFormation Console ->> Customer Stack: Create IAM role <br/>for the partner<br/>(partnerAccountId, externalId)
 Customer Stack ->> SNS Topic: Notify IAM role creation(roleArn)
 SNS Topic ->> CreateQuote Lambda Function: Invoke
 CreateQuote Lambda Function ->> DynamoDB Table: Store role ARN(roleArn)

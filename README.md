@@ -105,7 +105,7 @@ CreateQuote Lambda Function ->> DynamoDB Table: Store role ARN(roleArn)
 DynamoDB Table -->> CreateQuote Lambda Function: Get external ID(externalId)
 CreateQuote Lambda Function ->> Customer Account: Assume IAM role(roleArn, externalId)
 CreateQuote Lambda Function ->> Security Hub: Retrieve findings
-Security Hub ->> CreateQuote Lambda Function: Findings data(findings)
+Security Hub -->> CreateQuote Lambda Function: Findings data(findings)
 CreateQuote Lambda Function ->> Findings S3 Bucket: Store findings(findings)
 CreateQuote Lambda Function ->> Risk Model: Input findings(findings)
 Risk Model ->> DynamoDB Table: Store quote(quote)

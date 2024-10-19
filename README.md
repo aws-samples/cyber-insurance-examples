@@ -45,6 +45,7 @@ The solution consists of two parts:
 
 ```mermaid
 sequenceDiagram
+actor Partner
 Partner ->> CloudFormation: Deploy partner-template.yaml
 Partner ->> Template S3 Bucket: Upload customer-template.yaml
 Partner ->> Website S3 Bucket: Deploy frontend website
@@ -54,6 +55,7 @@ Partner ->> Website S3 Bucket: Deploy frontend website
 
 ```mermaid
 sequenceDiagram
+actor Customer
 Customer ->> AWS Organizations Management Account: Designate a Security Hub delegated administrator account
 Customer ->> Delegated Administrator: Designate an aggregation Region
 Customer ->> Security Hub: Enable AWS Foundational Security Best Practices (FSBP)

@@ -127,25 +127,29 @@ def assume_customer_role(customer_role_arn, external_id):
 def process_findings(findings):
     # Add any custom logic here
     # Example: Print the number of findings
-    logger.info("Total number of findings: " + str(len(findings)))
+    logger.info(f"Total number of findings: {len(findings)}")
+    
     failed_findings = [finding for finding in findings if finding["Compliance"]["Status"] == "FAILED"]
-    logger.info("Number of failed findings: " + str(len(failed_findings)))
     passed_findings = [finding for finding in findings if finding["Compliance"]["Status"] == "PASSED"]
-    logger.info("Number of passed findings: " + str(len(passed_findings)))
     warnings_findings = [finding for finding in findings if finding["Compliance"]["Status"] == "WARNING"]
-    logger.info("Number of warning findings: " + str(len(warnings_findings)))
     not_available_findings = [finding for finding in findings if finding["Compliance"]["Status"] == "NOT_AVAILABLE"]
-    logger.info("Number of not available findings: " + str(len(not_available_findings)))
+    
     critical_findings = [finding for finding in findings if finding["Severity"]["Label"] == "CRITICAL"]
-    logger.info("Number of critical findings: " + str(len(critical_findings)))
     high_findings = [finding for finding in findings if finding["Severity"]["Label"] == "HIGH"]
-    logger.info("Number of high findings: " + str(len(high_findings)))
     medium_findings = [finding for finding in findings if finding["Severity"]["Label"] == "MEDIUM"]
-    logger.info("Number of medium findings: " + str(len(medium_findings)))
     low_findings = [finding for finding in findings if finding["Severity"]["Label"] == "LOW"]
-    logger.info("Number of low findings: " + str(len(low_findings)))
     informational_findings = [finding for finding in findings if finding["Severity"]["Label"] == "INFORMATIONAL"]
-    logger.info("Number of informational findings: " + str(len(informational_findings)))
+    
+    logger.info(f"Number of failed findings: {len(failed_findings)}")
+    logger.info(f"Number of passed findings: {len(passed_findings)}")
+    logger.info(f"Number of warning findings: {len(warnings_findings)}")
+    logger.info(f"Number of not available findings: {len(not_available_findings)}")
+    logger.info(f"Number of critical findings: {len(critical_findings)}")
+    logger.info(f"Number of high findings: {len(high_findings)}")
+    logger.info(f"Number of medium findings: {len(medium_findings)}")
+    logger.info(f"Number of low findings: {len(low_findings)}")
+    logger.info(f"Number of informational findings: {len(informational_findings)}")
+    
     # Quote calculation logic example
     # 1 critical finding = $1000
     # 1 high finding = $500

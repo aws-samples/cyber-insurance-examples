@@ -67,7 +67,7 @@ Note right of Security Hub: Wait up to 48 hours for FSBP to generate findings
 ```mermaid
 sequenceDiagram
 actor Customer
-box rgb(224,224,224) Partner AWS Environment
+box Partner AWS Environment
 participant Partner Portal
 participant API Gateway
 participant StoreAccountDetails Lambda Function
@@ -80,7 +80,7 @@ participant Findings S3 Bucket
 participant Risk Model
 participant CheckQuote Lambda Function
 end
-box rgb(204,255,255) Customer AWS Environment
+box Customer AWS Environment
 participant Customer Account
 participant CloudFormation Console
 participant Customer Stack
